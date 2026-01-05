@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nxadm/tail"
@@ -19,6 +21,10 @@ var (
 
 	// Regex for Logout: Session closed by
 	reLogout = regexp.MustCompile(`Session closed by`)
+
+	notificationCache      = make(map[string]time.Time)
+	notificationCacheMutex sync.RWMutex
+	deduplicationWindow    = 30 * time.Second
 )
 
 type LineHandler func(line string, logTime time.Time, label string)
@@ -93,6 +99,29 @@ func HandleLogin(line string, logTime time.Time, label string) {
 		SetLastAnydeskUser(userName)
 
 		if isRecent(logTime) {
+			eventKey := fmt.Sprintf("%s|%s|%s", userName, userID, logTime.Format(time.RFC3339))
+			eventHash := fmt.Sprintf("%x", sha256.Sum256([]byte(eventKey)))
+
+			notificationCacheMutex.Lock()
+			lastNotified, exists := notificationCache[eventHash]
+			now := time.Now()
+
+			for hash, notifTime := range notificationCache {
+				if now.Sub(notifTime) > deduplicationWindow {
+					delete(notificationCache, hash)
+				}
+			}
+
+			if exists && now.Sub(lastNotified) < deduplicationWindow {
+				notificationCacheMutex.Unlock()
+				log.Printf("Skipped duplicate notification for %s (ID: %s) - already sent %v ago",
+					userName, userID, now.Sub(lastNotified))
+				return
+			}
+
+			notificationCache[eventHash] = now
+			notificationCacheMutex.Unlock()
+
 			msg := fmt.Sprintf(":rotating-light-red: *%s* AnyDesk session request detected\nUser: %s\nID: %s\nTime: %s (GMT)\nSource: %s",
 				Config.VMName, userName, userID, logTime.Format(time.RFC3339), label)
 
