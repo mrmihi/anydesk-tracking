@@ -1,0 +1,36 @@
+# AnyDesk Tracker Configuration Example
+# Copy this file to config.yaml and fill in your actual values
+
+# Slack webhook URL for notifications (REQUIRED)
+# Get this from: https://api.slack.com/messaging/webhooks
+webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+# Name of the VM/machine being monitored (REQUIRED)
+# This will appear in Slack notifications
+vm_name: "Production Server 1"
+
+# Path to AnyDesk user trace file (default shown below)
+# This file contains login events
+user_trace_file: "C:\\Users\\YourUsername\\AppData\\Roaming\\AnyDesk\\ad.trace"
+
+# Path to AnyDesk service trace file (default shown below)
+# This file contains logout events
+service_trace_file: "C:\\ProgramData\\AnyDesk\\ad_svc.trace"
+
+# Path to application log file (default shown below)
+# Relative paths are resolved relative to the executable location
+app_log_file: "AnyDeskGoTracker.log"
+
+# Path to external file to monitor for changes (optional)
+# Leave empty to disable file monitoring
+# Example: "C:\\Users\\YourUsername\\important_config.yml"
+external_file: ""
+
+# Time window for considering events as "recent" (in seconds)
+# Events older than this will be logged but not sent to Slack
+# Default: 5 seconds
+allowed_recent_duration: 5s
+
+# Log timestamp format (default shown below)
+# This should match the timestamp format in AnyDesk trace files
+log_time_layout: "2006-01-02 15:04:05.000"
